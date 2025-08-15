@@ -11,3 +11,9 @@ export const showSchema = z.object({
     totalSeats: z.coerce.number().min(1, "Total seats must be at least 1"),
     duration: z.coerce.number().min(1, "Duration must be at least 1 minute").default(1),
 });
+
+
+
+export const availableSeatsSchema = z.object({
+    showId: z.string().min(1, "Show Id is required")
+})

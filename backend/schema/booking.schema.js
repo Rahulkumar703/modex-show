@@ -13,7 +13,3 @@ export const bookingStatusSchema = z.object({
     bookingId: z.string().min(1, "Booking Id is required")
 })
 
-
-export const availableSeatsSchema = z.object({
-    showId: z.string().min(1, "Show Id is required")
-})

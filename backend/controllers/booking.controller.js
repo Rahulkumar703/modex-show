@@ -11,7 +11,7 @@ const getBookings = async (req, res) => {
     });
 
     res.status(200).json({
-        message: "Booking route is working",
+        message: "All bookings retrieved successfully",
         data: bookings
     });
 }
@@ -96,7 +96,7 @@ const getBookingStatus = async (req, res) => {
     })
 }
 
-const getAvailableSeats = async (req,res) => {
+const getShow = async (req,res) => {
 
     const {showId} = req.params;
     // Step 1: Find all booked seats for this show
@@ -112,20 +112,16 @@ const getAvailableSeats = async (req,res) => {
 
     const show = await prisma.show.findUnique({
         where: {id: showId},
-        select: {totalSeats: true}
     });
 
     const bookedSeatNumbers = bookedSeats.map(seat => seat.seatNo);
 
-    // Step 2: Get total seat numbers (example: 1 to 100)
-    const totalSeats = Array.from({length: show.totalSeats}, (_, i) => i + 1);
-
-    // Step 3: Filter out booked seats
-    const availableSeats = totalSeats.filter(seat => !bookedSeatNumbers.includes(seat));
-
     return res.status(200).json({
-        message: "Available seats retrieved successfully",
-        data: availableSeats
+        message: "Show retrieved successfully",
+        data: {
+            ...show,
+            bookedSeats: bookedSeatNumbers
+        }
     });
 }
 
@@ -134,5 +130,5 @@ export {
     getBookings,
     bookSeat,
     getBookingStatus,
-    getAvailableSeats
+    getShow
 }
