@@ -1,4 +1,3 @@
-// src/workers/bookingWorker.js
 import { Worker } from "bullmq";
 import { prisma } from "../config/prisma.config.js";
 import { redisQueueConnection } from "../config/redis.config.js";
@@ -9,7 +8,6 @@ const bookingWorker = new Worker(
         const { requestId, seatNumbers, showId } = job.data;
 
         return await prisma.$transaction(async tx => {
-            // 1️⃣ Validate booking request exists and is still pending
             const bookingRequest = await tx.bookingRequest.findUnique({
                 where: { id: requestId },
                 select: { id: true, status: true }
@@ -18,8 +16,6 @@ const bookingWorker = new Worker(
             if (!bookingRequest || bookingRequest.status !== "PENDING") {
                 throw new Error("Invalid or already processed booking request");
             }
-
-            // 2️⃣ Check if any seat is already confirmed for this show
             const conflicts = await tx.booking.findMany({
                 where: {
                     seatNo: { in: seatNumbers },
@@ -30,7 +26,6 @@ const bookingWorker = new Worker(
             });
 
             if (conflicts.length > 0) {
-                // 3️⃣ Mark request as FAILED (no seats booked)
                 await tx.bookingRequest.update({
                     where: { id: requestId },
                     data: { status: "FAILED" }
@@ -38,8 +33,6 @@ const bookingWorker = new Worker(
 
                 return { status: "FAILED", conflicts };
             }
-
-            // 4️⃣ No conflicts → book all seats
             await tx.booking.createMany({
                 data: seatNumbers.map(seatNo => ({
                     bookingRequestId: requestId,
