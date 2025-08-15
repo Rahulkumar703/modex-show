@@ -99,7 +99,7 @@ const getBookingStatus = async (req, res) => {
 const getShow = async (req,res) => {
 
     const {showId} = req.params;
-    // Step 1: Find all booked seats for this show
+    
     const bookedSeats = await prisma.booking.findMany({
         where: {
             showId,
