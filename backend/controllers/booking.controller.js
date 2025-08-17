@@ -2,6 +2,21 @@ import {prisma} from "../config/prisma.config.js";
 import {bookingQueue} from "../queues/booking.queue.js";
 import {v4 as uuidv4} from "uuid";
 
+
+const getBookings = async (req, res) => {
+
+    const bookings = await prisma.booking.findMany({
+        orderBy: {
+            createdAt: 'desc'
+        }
+    });
+
+    res.status(200).json({
+        message: "Booking route is working",
+        data: bookings
+    });
+}
+
 const getBooking = async (req, res) => {
     const {showId} = req.params;
     const show = await prisma.show.findUnique({
@@ -118,5 +133,5 @@ const getBookingStatus = async (req, res) => {
 
 
 export {
-    getBooking, bookSeat, getBookingStatus
+    getBooking, getBookings, bookSeat, getBookingStatus
 }
