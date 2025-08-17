@@ -1,7 +1,3 @@
-Here’s a production-ready `README.md` file for your GitHub repository [`modex-show`](https://github.com/Rahulkumar703/modex-show):
-
----
-
 ## 🎟️ Modex Show
 
 Modex Show is a full-stack ticket booking system built with **Node.js**, **Redis**, **Zod**, and **React + TypeScript**. It supports real-time seat selection, booking confirmation polling, and robust backend validation.
