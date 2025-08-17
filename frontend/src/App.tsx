@@ -7,6 +7,9 @@ import Login from "./pages/Login.tsx";
 import {useAuth} from "./context/authContext.tsx";
 import Show from "./pages/Show.tsx";
 import Shows from "./pages/Shows.tsx";
+import {Toaster} from "@/components/ui/sonner.tsx";
+import AddShows from "@/pages/AddShows.tsx";
+import Bookings from "@/pages/Bookings.tsx";
 
 function App() {
 
@@ -19,7 +22,12 @@ function App() {
                 <Route path="/" index element={<Home/>}/>
 
                 {/* Admin route */}
-                {role === 'ADMIN' && <Route path="/admin" element={<Admin/>}/>}
+                {role === 'ADMIN' ? <>
+                    <Route path="/admin" element={<Admin/>}/>
+                    <Route path="/admin/add-shows" element={<AddShows/>}/>
+                    <Route path="/admin/bookings" element={<Shows/>}/>
+                    <Route path="/admin/bookings/:showId" element={<Bookings/>}/>
+                </> : null}
 
                 {/* User route */}
                 {role ?
@@ -33,6 +41,7 @@ function App() {
 
                 <Route path="*" element={<NotFound/>}/>
             </Routes>
+            <Toaster richColors={true}/>
         </BrowserRouter>
     );
 }

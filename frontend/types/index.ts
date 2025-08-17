@@ -11,16 +11,25 @@ export interface Show {
     totalSeats: number
     createdAt: string
     updatedAt: string
-
 }
 
 export interface ShowWithSeats extends Show {
     bookedSeats: number[]
 }
 
-export interface  ShowFormValues {
+export interface Booking {
+    id: string;
+    bookingRequestId: string;
+    seats: number[];
+}
+
+export interface BookedShow {
+    id: string;
     name: string;
     startTime: string;
-    totalSeats: string;
-    duration?: string;
-};
+    endTime: string;
+    totalSeats: number;
+    createdAt: string;
+    updatedAt: string;
+    bookings: Booking[];
+}

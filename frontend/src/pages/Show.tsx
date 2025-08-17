@@ -5,7 +5,8 @@ import Page from "../components/Page.tsx";
 import {useNavigate, useParams} from "react-router-dom";
 import {Armchair, Calendar, Clock, Loader2} from "lucide-react";
 import {format} from "date-fns";
-import Button from "../components/button.tsx";
+import {Button} from "@/components/ui/button.tsx";
+import {toast} from "sonner";
 
 type BookingStatus = "PENDING" | "CONFIRMED" | "FAILED";
 
@@ -18,7 +19,6 @@ export default function Show() {
     const navigate = useNavigate();
     const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
 
-    // Fetch show details
     useEffect(() => {
         const controller = new AbortController();
         const fetchShow = async () => {
@@ -28,12 +28,19 @@ export default function Show() {
                 const response = await fetch(`http://localhost:5000/api/shows/${showId}`, {
                     signal: controller.signal,
                 });
-                if (!response.ok) throw new Error("Network response was not ok");
-
+                if (!response.ok) {
+                    const err = await response.json();
+                    toast.error(err.message || "Network error");
+                    return;
+                }
                 const data: APIResponse<ShowWithSeats> = await response.json();
                 setShow(data.data);
-            } catch (error: any) {
-                if (error.name === "AbortError") return;
+
+            } catch (error) {
+                if (error instanceof Error) {
+                    if (error.name === "AbortError") return;
+                    toast.error(error.message);
+                }
                 console.error("Error fetching show:", error);
             } finally {
                 setLoading(false);
@@ -41,7 +48,7 @@ export default function Show() {
         };
         fetchShow();
         return () => controller.abort();
-    }, [showId]);
+    }, [showId, navigate]);
 
     const addSeat = (seat: number) => {
         if (selectedSeats.includes(seat)) {
@@ -49,10 +56,9 @@ export default function Show() {
         } else {
             setSelectedSeats([...selectedSeats, seat]);
         }
-        setBookingStatus(null); // Reset booking status when selecting seats
+        setBookingStatus(null);
     };
 
-    // Book seats and poll status
     const bookSeats = async () => {
         try {
             setBookingStatus("PENDING");
@@ -61,12 +67,15 @@ export default function Show() {
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({showId, seatNumbers: selectedSeats}),
             });
-
-            if (!response.ok) throw new Error("Failed to create booking");
+            if (!response.ok) {
+                const err = await response.json();
+                toast.error(err.message || "Network error");
+                return;
+            }
 
             const data: { message: string; requestId: string } = await response.json();
+            toast.info(`waiting for confirmation for booking id : ${data.requestId}`);
 
-            // Poll the booking status
             const interval = setInterval(async () => {
                 const statusRes = await fetch(`http://localhost:5000/api/bookings/${data.requestId}`);
                 if (!statusRes.ok) return;
@@ -87,12 +96,20 @@ export default function Show() {
                             bookedSeats: [...show.bookedSeats, ...selectedSeats],
                         });
                     }
+                    if (statusData.data.status === "CONFIRMED") {
+                        toast.success(statusData.message);
+                    } else
+                        toast.error(statusData.message);
                     setSelectedSeats([]); // Reset selection
                 }
             }, 1000);
-        } catch (error: any) {
+        } catch (error) {
             setBookingStatus("FAILED");
-            console.error(error.message);
+            if (error instanceof Error) {
+                if (error.name === "AbortError") return;
+                toast.error(error.message);
+            }
+            console.error("Error booking seats:", error);
         }
     };
 
@@ -105,7 +122,6 @@ export default function Show() {
     const startFormatted = format(start, "h:mm a");
     const endFormatted = format(end, "h:mm a");
 
-    // Status color helper
     const statusColor = {
         PENDING: "bg-card/70 text-blue-700 border-blue-500",
         CONFIRMED: "bg-card/70 text-green-700 border-green-500",
@@ -114,7 +130,6 @@ export default function Show() {
 
     return (
         <Page className="gap-10">
-            {/* Show Info */}
             <div className="flex flex-col gap-2">
                 <h1 className="text-4xl font-bold text-foreground/80">Booking for {show?.name}</h1>
                 <div className="flex gap-4">
@@ -131,13 +146,11 @@ export default function Show() {
                 </div>
             </div>
 
-            {/* Screen */}
             <div
                 className="w-full h-8 bg-card/80 border border-primary rounded-t-lg flex items-center justify-center text-white font-semibold">
                 SCREEN
             </div>
 
-            {/* Seat Grid */}
             <div className="grid grid-cols-[repeat(auto-fit,minmax(50px,1fr))] gap-2">
                 {Array.from({length: show.totalSeats}).map((_, index) => {
                     const isBooked = show.bookedSeats.includes(index + 1);
@@ -161,7 +174,6 @@ export default function Show() {
                 })}
             </div>
 
-            {/* Book Button */}
             {selectedSeats.length > 0 && bookingStatus !== "PENDING" && (
                 <Button disabled={loading} onClick={bookSeats}>
                     <Armchair className="w-5 h-5"/>
@@ -169,7 +181,6 @@ export default function Show() {
                 </Button>
             )}
 
-            {/* Booking Status */}
             {bookingStatus && (
                 <div
                     className={`mt-4 p-3 border-l-4 rounded shadow flex items-center gap-2 ${

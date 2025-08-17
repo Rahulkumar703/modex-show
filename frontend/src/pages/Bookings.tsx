@@ -1,91 +1,85 @@
-import {useEffect, useState} from "react";
-import type {APIResponse, Show} from "../../types";
-import Skeleton from "../components/skeleton.tsx";
-import ShowCard from "../components/show-card.tsx";
-import Page from "../components/Page.tsx";
-import {toast} from "sonner";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import Page from "../components/Page";
+import Skeleton from "../components/skeleton";
+import { Calendar, Clock } from "lucide-react";
+import { format } from "date-fns";
+import { toast } from "sonner";
+import type { APIResponse, BookedShow } from "../../types";
+import {SeatGrid} from "@/components/seat-grid.tsx";
 
-export default function Bookings() {
-    const [shows, setShows] = useState<Show[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-
-    const date = new Date();
+export default function BookedShowPage() {
+    const { showId } = useParams<{ showId: string }>();
+    const [show, setShow] = useState<BookedShow | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const controller = new AbortController();
-
-        const fetchShows = async () => {
+        const fetchShow = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/shows', {signal: controller.signal});
+                const response = await fetch(`http://localhost:5000/api/bookings/show/${showId}`, {
+                    signal: controller.signal,
+                });
                 if (!response.ok) {
                     const err = await response.json();
-                    toast.error(err.message || "Network error");
+                    toast.error(err.message || "Failed to fetch booked show");
                     return;
                 }
-
-                const data: APIResponse<Show[]> = await response.json();
-                setShows(data.data);
+                const data: APIResponse<BookedShow> = await response.json();
+                setShow(data.data);
             } catch (error) {
-                if (error instanceof Error) {
-                    if (error.name === "AbortError") return;
+                if (error instanceof Error && error.name !== "AbortError") {
                     toast.error(error.message);
                 }
-                console.error('Error fetching shows:', error);
+                console.error("Error fetching booked show:", error);
             } finally {
                 setLoading(false);
             }
         };
-
-        fetchShows();
-
+        fetchShow();
         return () => controller.abort();
-    }, []);
+    }, [showId]);
 
-    if (loading) return <Loading/>
+    if (loading || !show) return <Loading totalSeats={show?.totalSeats || 60} />;
+
+    const start = new Date(show.startTime);
+    const end = new Date(show.endTime);
+    const date = format(start, "MMM dd");
+    const startFormatted = format(start, "h:mm a");
+    const endFormatted = format(end, "h:mm a");
 
     return (
-        <Page className={'gap-10'}>
-            {
-                shows.filter(show => new Date(show.endTime) < date).length !== 0 &&
-                <div className={'flex flex-col gap-6'}>
-                    <h1 className={'text-4xl font-bold text-foreground/50'}>Past Shows</h1>
-                    <div className={'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 p-2'}>
-                        {shows.filter(show => new Date(show.endTime) < date).map(show => (
-                            <ShowCard show={show} key={show.id} disabled/>
-                        ))}
+        <Page className="gap-10">
+            <div className="flex flex-col gap-2">
+                <h1 className="text-4xl font-bold text-foreground/80">Booked Show: {show.name}</h1>
+                <div className="flex gap-4">
+                    <div className="flex items-center gap-1 text-sm text-gray-700">
+                        <Calendar className="w-5 h-5 text-blue-500" />
+                        <span className="font-medium">{date}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-sm text-gray-700">
+                        <Clock className="w-5 h-5 text-red-500" />
+                        <span className="font-medium">{startFormatted}</span>
+                        <span className="mx-1">-</span>
+                        <span className="font-medium">{endFormatted}</span>
                     </div>
                 </div>
-            }
-            {
-                shows.filter(show => new Date(show.startTime) <= date && new Date(show.endTime) >= date).length !== 0 &&
-                <div className={'flex flex-col gap-6'}>
-                    <h1 className={'text-4xl font-bold text-foreground/50'}>Running Shows</h1>
-                    <div className={'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 p-2'}>
-                        {shows.filter(show => new Date(show.startTime) <= date && new Date(show.endTime) >= date).map(show => (
-                            <ShowCard show={show} key={show.id}/>
-                        ))}
-                    </div>
-                </div>
-            }
-            {
-                shows.filter(show => new Date(show.startTime) > date).length !== 0 &&
-                <div className={'flex flex-col gap-6'}>
-                    <h1 className={'text-4xl font-bold text-foreground/50'}>Upcoming Shows</h1>
-                    <div className={'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 p-2'}>
-                        {shows.filter(show => new Date(show.startTime) > date).map(show => (
-                            <ShowCard show={show} key={show.id}/>
-                        ))}
-                    </div>
-                </div>
-            }
+            </div>
+
+            <SeatGrid totalSeats={show.totalSeats} bookings={show.bookings} />
         </Page>
     );
-};
-
-const Loading = () => {
-    return (
-        <div className={'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4:'}>
-            <Skeleton className="w-full h-20"></Skeleton>
-        </div>
-    );
 }
+
+const Loading = ({ totalSeats }: { totalSeats: number }) => (
+    <Page className="gap-10">
+        <Skeleton className="w-64 h-8" />
+        <Skeleton className="w-32 h-6" />
+        <Skeleton className="w-full h-8" />
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(50px,1fr))] gap-2">
+            {Array.from({ length: totalSeats }).map((_, index) => (
+                <Skeleton key={index} className="w-12 h-12" />
+            ))}
+        </div>
+    </Page>
+);

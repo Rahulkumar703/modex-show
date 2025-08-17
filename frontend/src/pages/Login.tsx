@@ -1,7 +1,9 @@
-import Page from "../components/Page.tsx";
-import Button from "../components/button.tsx";
-import {useAuth} from "../context/authContext.tsx";
+import Page from "@/components/Page.tsx";
+import {Button} from "@/components/ui/button.tsx";
+import {useAuth} from "@/context/authContext.tsx";
 import {useNavigate} from "react-router-dom";
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card.tsx";
+import {User, UserStar} from "lucide-react";
 
 function Login() {
     const {login} = useAuth();
@@ -19,14 +21,22 @@ function Login() {
 
     return (
         <Page className={'items-center justify-center'}>
-            <div className={'sm:min-w-md flex flex-col gap-2 text-center bg-card p-6 rounded-lg shadow-xl'}>
-                <h1 className={'text-2xl font-bold'}>Login</h1>
-                <p className={'text-muted-foreground'}>Please select your role to continue</p>
-                <div className={'flex flex-col gap-2 mt-4'}>
-                    <Button onClick={() => loginAs('ADMIN')}>Login as Admin</Button>
-                    <Button onClick={() => loginAs('USER')}>Login as User</Button>
-                </div>
-            </div>
+            <Card className={'sm:min-w-md flex flex-col gap-2'}>
+                <CardHeader>
+                    <CardTitle>Login</CardTitle>
+                    <CardDescription>
+                        Please select your role to continue
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className={'flex flex-col gap-2 mt-4'}>
+                    <Button variant={'outline'} onClick={() => loginAs('ADMIN')}>
+                        <UserStar />
+                        Login as Admin</Button>
+                    <Button onClick={() => loginAs('USER')}>
+                        <User/>
+                        Login as User</Button>
+                </CardContent>
+            </Card>
         </Page>
     );
 }

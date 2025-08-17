@@ -1,6 +1,6 @@
-import Button from "../components/button.tsx";
+import {Button} from "@/components/ui/button.tsx";
 import {Home} from "lucide-react";
-import Page from "../components/Page.tsx";
+import Page from "@/components/Page.tsx";
 import {useNavigate} from "react-router-dom";
 
 function NotFound() {
