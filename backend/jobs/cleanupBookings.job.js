@@ -8,10 +8,8 @@ cron.schedule("* * * * *", async () => {
 
     await prisma.bookingRequest.updateMany({
         where: {
-            status: "PENDING",
-            createdAt: { lte: twoMinutesAgo }
-        },
-        data: { status: "FAILED" }
+            status: "PENDING", createdAt: {lte: twoMinutesAgo}
+        }, data: {status: "FAILED"}
     });
 
     console.log("Expired bookings marked as FAILED");

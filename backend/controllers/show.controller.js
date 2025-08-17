@@ -8,33 +8,23 @@ const createNewShow = async (req, res) => {
 
     const existingShow = await prisma.show.findFirst({
         where: {
-            name,
-            AND: [
-                {startTime: {lt: endTime}},
-                {endTime: {gt: new Date(startTime)}}
-            ]
+            name, AND: [{startTime: {lt: endTime}}, {endTime: {gt: new Date(startTime)}}]
         }
     });
 
-    if (existingShow)
-        res.status(409).send({
-            message: `'${existingShow.name}' is already running in this time slot`,
-            data: existingShow
-        })
+    if (existingShow) res.status(409).send({
+        message: `'${existingShow.name}' is already running in this time slot`, data: existingShow
+    })
 
 
     const data = await prisma.show.create({
         data: {
-            name,
-            startTime,
-            totalSeats,
-            endTime
+            name, startTime, totalSeats, endTime
         }
     });
 
-    res.status(400).send({
-        message: `${name} show created successfully`,
-        data
+    res.status(201).send({
+        message: `${name} show created successfully`, data
     })
 }
 
@@ -45,21 +35,43 @@ const getAllShows = async (req, res) => {
         }
     });
 
-    if(!shows || shows.length === 0) {
+    if (!shows || shows.length === 0) {
         return res.status(404).send({
-            message: "No shows found",
-            data: []
+            message: "No shows found", data: []
         });
     }
 
     res.status(200).send({
-        message: "All shows fetched successfully",
-        data: shows
+        message: "All shows fetched successfully", data: shows
     });
 }
 
 
+const getShowBookings = async (req, res) => {
+
+    const {showId} = req.params;
+
+    const bookedSeats = await prisma.booking.findMany({
+        where: {
+            showId, bookingRequest: {
+                status: {in: ["PENDING", "CONFIRMED"]}
+            }
+        }, select: {seatNo: true}
+    });
+
+    const show = await prisma.show.findUnique({
+        where: {id: showId},
+    });
+
+    const bookedSeatNumbers = bookedSeats.map(seat => seat.seatNo);
+
+    return res.status(200).json({
+        message: "Show retrieved successfully", data: {
+            ...show, bookedSeats: bookedSeatNumbers
+        }
+    });
+}
+
 export {
-    createNewShow,
-    getAllShows
+    createNewShow, getAllShows, getShowBookings
 }

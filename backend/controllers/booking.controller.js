@@ -2,19 +2,52 @@ import {prisma} from "../config/prisma.config.js";
 import {bookingQueue} from "../queues/booking.queue.js";
 import {v4 as uuidv4} from "uuid";
 
-const getBookings = async (req, res) => {
-
-    const bookings = await prisma.booking.findMany({
-        orderBy: {
-            createdAt: 'desc'
-        }
+const getBooking = async (req, res) => {
+    const {showId} = req.params;
+    const show = await prisma.show.findUnique({
+        where: {
+            id: showId
+        }, select: {
+            id: true,
+            name: true,
+            startTime: true,
+            endTime: true,
+            totalSeats: true,
+            createdAt: true,
+            updatedAt: true,
+            bookings: {
+                select: {
+                    id: true, seatNo: true, bookingRequest: true
+                },
+            },
+        },
     });
+
+    const grouped = {};
+
+    for (const booking of show.bookings) {
+        const reqId = booking.bookingRequest.id;
+        const seatNo = booking.seatNo;
+
+        if (!grouped[reqId]) {
+            grouped[reqId] = {
+                id: booking.id, bookingRequestId: reqId, seats: [],
+            };
+        }
+
+        grouped[reqId].seats.push(seatNo);
+    }
+
+    const formatedShow = {
+        ...show,
+        bookings: Object.values(grouped),
+    };
+
 
     res.status(200).json({
-        message: "All bookings retrieved successfully",
-        data: bookings
+        message: "All booking requests retrieved successfully", data: formatedShow,
     });
-}
+};
 
 const bookSeat = async (req, res) => {
     const {seatNumbers, showId} = req.body;
@@ -22,8 +55,7 @@ const bookSeat = async (req, res) => {
     const requestId = uuidv4();
 
     const show = await prisma.show.findUnique({
-        where: {id: showId},
-        select: {id: true}
+        where: {id: showId}, select: {id: true}
     });
 
     if (!show) {
@@ -34,9 +66,7 @@ const bookSeat = async (req, res) => {
 
     const existingBooking = await prisma.bookingRequest.findFirst({
         where: {
-            showId,
-            status: {in: ["PENDING", "CONFIRMED"]},
-            seats: {
+            showId, status: {in: ["PENDING", "CONFIRMED"]}, seats: {
                 some: {
                     seatNo: {in: seatNumbers}
                 }
@@ -52,21 +82,16 @@ const bookSeat = async (req, res) => {
 
     await prisma.bookingRequest.create({
         data: {
-            id: requestId,
-            showId,
-            status: "PENDING"
+            id: requestId, showId, status: "PENDING"
         }
     });
 
     await bookingQueue.add("bookSeats", {
-        requestId,
-        seatNumbers,
-        showId
+        requestId, seatNumbers, showId
     });
 
     return res.status(202).json({
-        message: "Booking request queued",
-        requestId
+        message: "Booking request queued", requestId
     });
 }
 
@@ -75,12 +100,8 @@ const getBookingStatus = async (req, res) => {
 
 
     const booking = await prisma.bookingRequest.findUnique({
-        where: {id: bookingId},
-        select: {
-            id: true,
-            status: true,
-            createdAt: true,
-            updatedAt: true
+        where: {id: bookingId}, select: {
+            id: true, status: true, createdAt: true, updatedAt: true
         }
     });
 
@@ -91,44 +112,11 @@ const getBookingStatus = async (req, res) => {
     }
 
     return res.status(200).json({
-        message: "Booking status retrieved successfully",
-        data: booking
+        message: "Booking status retrieved successfully", data: booking
     })
-}
-
-const getShow = async (req,res) => {
-
-    const {showId} = req.params;
-    
-    const bookedSeats = await prisma.booking.findMany({
-        where: {
-            showId,
-            bookingRequest: {
-                status: {in: ["PENDING", "CONFIRMED"]}
-            }
-        },
-        select: {seatNo: true}
-    });
-
-    const show = await prisma.show.findUnique({
-        where: {id: showId},
-    });
-
-    const bookedSeatNumbers = bookedSeats.map(seat => seat.seatNo);
-
-    return res.status(200).json({
-        message: "Show retrieved successfully",
-        data: {
-            ...show,
-            bookedSeats: bookedSeatNumbers
-        }
-    });
 }
 
 
 export {
-    getBookings,
-    bookSeat,
-    getBookingStatus,
-    getShow
+    getBooking, bookSeat, getBookingStatus
 }

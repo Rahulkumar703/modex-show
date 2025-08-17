@@ -34,7 +34,7 @@ model Booking {
   status           BookingStatus  @default(PENDING)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
-  Show             Show?          @relation(fields: [showId], references: [id])
+  show             Show?          @relation(fields: [showId], references: [id])
   showId           String?
 
   @@unique([bookingRequestId, seatNo])

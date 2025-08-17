@@ -9,8 +9,7 @@ const app = express();
 
 // Middlewares
 app.use(cors({
-    origin: ENV.CORS_ORIGIN,
-    methods: ['GET', 'POST'],
+    origin: ENV.CORS_ORIGIN, methods: ['GET', 'POST'],
 }));
 
 app.use(express.json());

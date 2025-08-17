@@ -11,17 +11,14 @@ export const validate = (target, schema) => {
 
             if (err.issues) {
                 return res.status(400).json({
-                    status: "error",
-                    errors: err.issues.map(e => ({
-                        path: e.path.join("."),
-                        message: e.message,
+                    status: "error", errors: err.issues.map(e => ({
+                        path: e.path.join("."), message: e.message,
                     })),
                 });
             }
 
             return res.status(500).json({
-                status: "error",
-                message: "Internal Server Error",
+                status: "error", message: "Internal Server Error",
             });
         }
     };
